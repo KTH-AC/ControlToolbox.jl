@@ -17,7 +17,7 @@ julia> realjordanform(D)
 ```
 """
 
-function realjordanform{T<:Number}(D::AbstractVector{T})
+function realjordanform(D::AbstractVector{T}) where {T<:Number}
   sort!(D, by=imag)
   sort!(D, by=x->abs(imag(x))) # make sure conjugated pairs are next to eachother
   sort!(D, by=real)
@@ -27,7 +27,7 @@ function realjordanform{T<:Number}(D::AbstractVector{T})
   while i <= length(D)
     d = D[i]
     if isreal(d)
-      n = findlast(D, d) - i + 1 # multiplicity of real eigenvalue
+      n = findlast(x -> x==d, D) - i + 1 # multiplicity of real eigenvalue
       @assert all(D[i+j] == d for j = 1:n-1) "There should be $n eigenvalues equal to $d"
 
       # fill jordan block for real eigenvalue
@@ -38,7 +38,7 @@ function realjordanform{T<:Number}(D::AbstractVector{T})
       end
       i += n
     else
-      n = findlast(D, d) - i + 1 # multiplicity of complex eigenvalue
+      n = findlast(x -> x==d, D) - i + 1 # multiplicity of complex eigenvalue
       @assert all(D[i+j] == d for j = 1:n-1) "There should be $n eigenvalues equal to $d"
       @assert all(D[i+n+j] == conj(d) for j = 1:n-1) "There should be $n eigenvalues equal to $(conj(d))"
       # construct real block C
@@ -49,8 +49,8 @@ function realjordanform{T<:Number}(D::AbstractVector{T})
       # fill jordan block for complex eigenvalue
       J[i:i+1,i:i+1] = C
       for k = 1:n-1
-        J[i+2(k-1)+(0:1),i+2k+(0:1)] = eye(C)
-        J[i+2k+(0:1),i+2k+(0:1)]     = C
+        J[(0:1).+(i+2(k-1)), (0:1).+(i+2k)] = Diagonal{T}(I,size(C,1))
+        J[(0:1).+(i+2k), (0:1).+(i+2k)]     = C
       end
       i += 2n
     end

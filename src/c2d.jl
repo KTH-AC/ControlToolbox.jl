@@ -8,7 +8,7 @@ using LTISystems: LtiSystem, StateSpace, TransferFunction
 @compat abstract type Method end
 
 # Zero-Order-Hold
-immutable ZOH <: Method
+struct ZOH <: Method
 end
 
 @compat function (m::ZOH)(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
@@ -32,13 +32,13 @@ end
   Ad, Bd, Cd, Dd, Ts, x0map = m(s.A, s.B, s.C, s.D, Ts)
   ss(Ad, Bd, Cd, Dd, Ts), x0map
 end
-@compat (m::ZOH){T}(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real) =
+@compat (m::ZOH)(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real) where {T} =
   tf(m(ss(s), Ts)[1])
-@compat (m::ZOH){T}(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real)  =
+@compat (m::ZOH)(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real) where {T} =
   m(ss(s), Ts)[1]
 
 # First-Order-Hold
-immutable FOH <: Method
+struct FOH <: Method
 end
 
 @compat function (m::FOH)(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix,
@@ -65,15 +65,15 @@ end
   Ad, Bd, Cd, Dd, Ts, x0map = m(s.A, s.B, s.C, s.D, Ts)
   ss(Ad, Bd, Cd, Dd, Ts), x0map
 end
-@compat (m::FOH){T}(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real) =
+@compat (m::FOH)(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real) where {T} =
   tf(m(ss(s), Ts)[1])
-@compat (m::FOH){T}(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real)  =
+@compat (m::FOH)(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real) where {T} =
   m(ss(s), Ts)[1]
 
 # Generalized Bilinear Transformation
-immutable Bilinear{T<:Real} <: Method
+struct Bilinear{T<:Real} <: Method
   α::T
-  @compat function (::Type{Bilinear}){T}(α::T = 0.5)
+  @compat function (::Type{Bilinear})(α::T = 0.5) where {T}
     @assert α ≥ 0. && α ≤ 1. "Bilinear: α must be between 0 and 1"
     new{T}(α)
   end
@@ -87,7 +87,7 @@ end
   ima   = I - α*Ts*A
   Ad    = ima\(I + (1.0-α)*Ts*A)
   Bd    = ima\(Ts*B)
-  Cd    = (ima.'\C.').'
+  Cd    = transpose(transpose(ima)\transpose(C))
   Dd    = D + α*(C*Bd)
   x0map = [speye(nx) spzeros(nx, nu)]
   Ad, Bd, Cd, Dd, Ts, x0map
@@ -100,13 +100,13 @@ end
   Ad, Bd, Cd, Dd, Ts, x0map = m(s.A, s.B, s.C, s.D, Ts)
   ss(Ad, Bd, Cd, Dd, Ts), x0map
 end
-@compat (m::Bilinear){T}(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real)  =
+@compat (m::Bilinear)(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real) where {T} =
   tf(m(ss(s), Ts)[1])
-@compat (m::Bilinear){T}(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real)   =
+@compat (m::Bilinear)(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real) where {T} =
   m(ss(s), Ts)[1]
 
 # Forward Euler
-immutable ForwardEuler <: Method
+struct ForwardEuler <: Method
 end
 
 @compat function (m::ForwardEuler)(A::AbstractMatrix, B::AbstractMatrix,
@@ -128,13 +128,13 @@ end
   Ad, Bd, Cd, Dd, Ts, x0map = m(s.A, s.B, s.C, s.D, Ts)
   ss(Ad, Bd, Cd, Dd, Ts), x0map
 end
-@compat (m::ForwardEuler){T}(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real)  =
+@compat (m::ForwardEuler)(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real) where {T} =
   tf(m(ss(s), Ts)[1])
-@compat (m::ForwardEuler){T}(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real)   =
+@compat (m::ForwardEuler)(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real) where {T} =
   m(ss(s), Ts)[1]
 
 # Backward Euler
-immutable BackwardEuler <: Method
+struct BackwardEuler <: Method
 end
 
 @compat function (m::BackwardEuler)(A::AbstractMatrix, B::AbstractMatrix,
@@ -144,7 +144,7 @@ end
   ima   = I - Ts*A
   Ad    = ima\eye(nx)
   Bd    = ima\(Ts*B)
-  Cd    = (ima.'\C.').'
+  Cd    = transpose(transpose(ima)\transpose(C))
   Dd    = D + C*Bd
   x0map = [speye(nx) spzeros(nx, nu)]
   Ad, Bd, Cd, Dd, Ts, x0map
@@ -157,9 +157,9 @@ end
   Ad, Bd, Cd, Dd, Ts, x0map = m(s, Ts)
   ss(Ad, Bd, Cd, Dd, Ts), x0map
 end
-@compat (m::BackwardEuler){T}(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real)  =
+@compat (m::BackwardEuler)(s::TransferFunction{Val{T},Val{:cont}}, Ts::Real) where {T} =
   tf(m(ss(s), Ts)[1])
-@compat (m::BackwardEuler){T}(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real)   =
+@compat (m::BackwardEuler)(s::LtiSystem{Val{T},Val{:cont}}, Ts::Real) where {T} =
   m(ss(s), Ts)[1]
 
 end
@@ -199,15 +199,15 @@ The generalized bilinear transform uses the parameter α and is based on [1].
 - [1] G. Zhang, X. Chen, and T. Chen, Digital redesign via the generalized
       bilinear transformation, Int. J. Control, vol. 82, no. 4, pp. 741-754, 2009.
 """
-function c2d{T}(s::StateSpace{T,Val{:cont}}, Ts::Real,
-  method = Discretization.ZOH())
+function c2d(s::StateSpace{T,Val{:cont}}, Ts::Real,
+  method = Discretization.ZOH()) where {T}
   @assert Ts > zero(Ts) && !isinf(Ts) "c2d: Ts must be a positive number"
   sys, x0map = method(s, Ts)
   return sys::StateSpace{T,Val{:disc}}, x0map::AbstractMatrix
 end
-function c2d{T}(s::LtiSystem{T,Val{:cont}}, Ts::Real,
-  method = Discretization.ZOH())
+function c2d(s::LtiSystem{T,Val{:cont}}, Ts::Real,
+  method = Discretization.ZOH()) where {T}
   @assert Ts > zero(Ts) && !isinf(Ts) "c2d: Ts must be a positive number"
   method(s, Ts)::LtiSystem{T,Val{:disc}}
 end
-c2d{T}(method::Function, s::LtiSystem{T,Val{:cont}}, Ts::Real) = c2d(s, Ts, method)
+c2d(method::Function, s::LtiSystem{T,Val{:cont}}, Ts::Real) where {T} = c2d(s, Ts, method)

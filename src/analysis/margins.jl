@@ -64,7 +64,7 @@ gainmargin(sys::LtiSystem, dB::Bool=false) = gainmargin(tf(sys), dB=dB)
 
 
 # Compute the real and imaginary parts of a polynomial assuming the argument is complex (=jw)
-function polysplit{T<:Real}(p::Poly{T})
+function polysplit(p::Poly{T}) where {T<:Real}
   rp = copy(coeffs(p))
   ip = copy(rp)
 

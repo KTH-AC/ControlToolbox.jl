@@ -6,6 +6,6 @@ JD = zeros(Int, 7,7)
 JD[1,1] = -1
 JD[2:3,2:3] = C1
 JD[4:5,4:5] = JD[6:7,6:7] = C2
-JD[4:5,6:7] = eye(Int, 2)
+JD[4:5,6:7] = Diagonal{Int}(I,2)
 
 @test realjordanform(D) == JD

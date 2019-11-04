@@ -9,8 +9,8 @@ Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
 # TO DO: Change code by SLICOT version
-function care{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
-            Q::StridedMatrix{T}, R::StridedMatrix{T})
+function care(A::StridedMatrix{T}, B::StridedMatrix{T},
+            Q::StridedMatrix{T}, R::StridedMatrix{T}) where {T}
     G = try
         B*inv(R)*B'
     catch
@@ -29,8 +29,9 @@ function care{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
     U21 = U[div(m,2)+1:m, 1:div(n,2)]
     return U21/U11
 end
-care{T1<:Real,T2<:Real,T3<:Real,T4<:Real}(A::StridedMatrix{T1}, B::StridedMatrix{T2},
-  Q::StridedMatrix{T3}, R::StridedMatrix{T4}) = care(float(A), float(B), float(Q), float(R))
+care(A::StridedMatrix{T1}, B::StridedMatrix{T2}, Q::StridedMatrix{T3},
+  R::StridedMatrix{T4}) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real} =
+  care(float(A), float(B), float(Q), float(R))
 
 """
 `dare(A, B, Q, R)`
@@ -44,8 +45,8 @@ Laub, "A Schur Method for Solving Algebraic Riccati Equations."
 http://dspace.mit.edu/bitstream/handle/1721.1/1301/R-0859-05666488.pdf
 """
 # TO DO: Change code by SLICOT version
-function dare{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
-            Q::StridedMatrix{T}, R::StridedMatrix{T})
+function dare(A::StridedMatrix{T}, B::StridedMatrix{T}, Q::StridedMatrix{T},
+    R::StridedMatrix{T}) where {T}
     G = try
         B*inv(R)*B'
     catch
@@ -70,5 +71,6 @@ function dare{T<:BlasFloat}(A::StridedMatrix{T}, B::StridedMatrix{T},
     U21 = U[div(m,2)+1:m, 1:div(n,2)]
     return U21/U11
 end
-dare{T1<:Real,T2<:Real,T3<:Real,T4<:Real}(A::StridedMatrix{T1}, B::StridedMatrix{T2},
-  Q::StridedMatrix{T3}, R::StridedMatrix{T4}) = dare(float(A), float(B), float(Q), float(R))
+dare(A::StridedMatrix{T1}, B::StridedMatrix{T2}, Q::StridedMatrix{T3},
+  R::StridedMatrix{T4}) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real} =
+  dare(float(A), float(B), float(Q), float(R))

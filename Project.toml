@@ -1,0 +1,23 @@
+name = "ControlToolbox"
+uuid = "059e8e86-8a00-5752-9d3d-adbce60f63dd"
+authors = ["Arda Aytekin <aytekin@kth.se>, Niklas Everitt <neveritt@kth.se>"]
+
+[deps]
+Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
+LTISystems = "67f030dc-aa52-5f83-ac42-e4024659685c"
+MathProgBase = "fdba3010-5040-5b88-9595-932c9decdf73"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+
+[compat]
+Compat = "≥ 0.17.0"
+LTISystems = "≥ 0.1.0"
+MathProgBase = "≥ 0.6.0"
+NLopt = "≥ 0.3.5"
+Optim = "≥ 0.7.8"
+julia = "≥ 0.5.0"
+
+[extras]
+NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
+
+[targets]
+test = ["NLopt"]
