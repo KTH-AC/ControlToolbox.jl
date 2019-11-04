@@ -133,10 +133,10 @@ for (A,B,p,κ,c) in ((A₁,B₁,p₁,κ₁,c₁), (A₂,B₂,p₂,κ₂,c₂), (
                     (A₇,B₇,p₇,κ₇,c₇), (A₈,B₈,p₈,κ₈,c₈), (A₉,B₉,p₉,κ₉,c₉))
   for placer in placers
     F = placer(A,B,p)
-    λ, V = eig(A+B*F)
+    λ, V = eigen(A+B*F)
 
-    @test cond(V)     < κ
-    @test vecnorm(F)  < c
+    @test cond(V) < κ
+    @test norm(F) < c
     for i in 1:length(p)
       j = findfirst(y->isapprox(y, p[i], rtol=1e-3), λ)
       if j > 0

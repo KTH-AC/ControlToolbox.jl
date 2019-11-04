@@ -1,7 +1,7 @@
 
-isstable{S}(s::StateSpace{S,Val{:disc}}) = maximum(abs(poles(s))) < 1
+isstable(s::StateSpace{S,Val{:disc}}) where {S} = maximum(abs(poles(s))) < 1
 
-isstable{S}(s::StateSpace{S,Val{:cont}}) = maximum(real(poles(s))) < 0
+isstable(s::StateSpace{S,Val{:cont}}) where {S} = maximum(real(poles(s))) < 0
 
 #isstable(s::LtiSystem{Val{:mimo}}) = map(isstable, getmatrix(s))
 

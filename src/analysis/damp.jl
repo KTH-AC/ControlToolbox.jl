@@ -4,7 +4,7 @@
 Compute the natural frequencies, `Wn`, and damping ratios, `zeta`, of the
 poles, `ps`, of `sys`
 """
-function damp{T,S}(sys::LtiSystem{T,S})
+function damp(sys::LtiSystem{T,S}) where {T,S}
   ps = poles(sys)
   if isdiscrete(sys)
     #Ts = sys.Ts == -1 ? 1 : sys.Ts
@@ -26,7 +26,7 @@ constant of the system `sys`
 """
 function dampreport(io::IO, sys::LtiSystem)
     Wn, zeta, ps = damp(sys)
-    t_const = 1./(Wn.*zeta)
+    t_const = 1 ./(Wn.*zeta)
     header =
     ("|     Pole                        |   Damping     |   Frequency   | Time Constant |\n"*
      "|                                 |    Ratio      |   (rad/sec)   |     (sec)     |\n"*

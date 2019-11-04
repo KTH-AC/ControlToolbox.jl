@@ -57,34 +57,32 @@ Complex{Float64}[4]
         feedback parametrization." IEEE International Symposium on
         Computer-Aided Control System Design, 2000.
 """
-function place{S<:Real,U<:Real,V<:Number}(
-  A::AbstractArray{S, 2}, B::AbstractArray{U, 2}, p::AbstractArray{V, 1};
-  α::Real = 0.99, rtol::Real=1e-3, iter::Integer=200)
+function place(A::AbstractArray{S, 2}, B::AbstractArray{U, 2}, p::AbstractArray{V, 1};
+  α::Real = 0.99, rtol::Real=1e-3, iter::Integer=200) where {S<:Real,U<:Real,V<:Number}
 
   # define optimization problem
   d = Poleplacement(A, B, p; α=α, rtol=rtol)
 
-  if(size(A,1) - d.m  > 0) # if there is something to optimize over
-    df = OnceDifferentiable(x -> eval_f(d::Poleplacement, x),
-                           (x, grad_f) -> eval_grad_f(d::Poleplacement, grad_f, x))
+  if (size(A,1) - d.m > 0) # if there is something to optimize over
+    df = OnceDifferentiable(x -> eval_f(d::Poleplacement, x), (x, grad_f) -> eval_grad_f(d::Poleplacement, grad_f, x))
     res = optimize(df,
-                  rand(eltype(d.xₚ), length(d.xₚ)),
-                  Optim.BFGS(),
-                  Optim.Options(iterations = iter))
+                   rand(eltype(d.xₚ), length(d.xₚ)),
+                   Optim.BFGS(),
+                   Optim.Options(iterations = iter))
   end
+
   # transform controller according to the factorization of A
-  K = hcat(zeros(size(d.K,1), d.m), d.K)*d.Qₐ.'
+  K = hcat(zeros(size(d.K,1), d.m), d.K)*transpose(d.Qₐ)
 end
 
-function place{S<:Real,U<:Real,V<:Number}(
-  A::AbstractArray{S, 2}, B::AbstractArray{U, 2}, p::AbstractArray{V, 1},
-  solver::AbstractMathProgSolver;
-  α::Real = 0.99, rtol::Real=1e-3, iter::Integer=200)
+function place(A::AbstractArray{S, 2}, B::AbstractArray{U, 2},
+  p::AbstractArray{V, 1}, solver::AbstractMathProgSolver;
+  α::Real = 0.99, rtol::Real=1e-3, iter::Integer=200) where {S<:Real,U<:Real,V<:Number}
 
   # define optimization problem
   d = Poleplacement(A, B, p; α=α, rtol=rtol)
 
-  if(size(A,1) - d.m  > 0) # if there is something to optimize over
+  if (size(A,1) - d.m > 0)
     G0 = randn(size(A,1)-d.m, size(B,2)) # random initial point
     n = length(G0)
     l = -Inf*ones(n)
@@ -102,11 +100,11 @@ function place{S<:Real,U<:Real,V<:Number}(
       throw(InvalidStateException())
     end
   end
-  # transform controller according to the factorization of A
-  K = hcat(zeros(size(d.K,1), d.m), d.K)*d.Qₐ.'
+
+  K = hcat(zeros(size(d.K,1), d.m), d.K)*transpose(d.Qₐ)
 end
 
-type Poleplacement{T,M} <: AbstractNLPEvaluator
+mutable struct Poleplacement{T,M} <: AbstractNLPEvaluator
   K::M
   A::M
   B::M
@@ -118,9 +116,9 @@ type Poleplacement{T,M} <: AbstractNLPEvaluator
   m::Integer
   Qₐ::M
 
-  @compat function (::Type{Poleplacement}){S<:Real,U<:Real,V<:Number}(
-    A::AbstractArray{S, 2}, B::AbstractArray{U, 2}, p::AbstractArray{V, 1};
-    α::Real = 0.99, rtol::Real=1e-3)
+  @compat function (::Type{Poleplacement})(A::AbstractArray{S, 2},
+    B::AbstractArray{U, 2}, p::AbstractArray{V, 1}; α::Real = 0.99,
+    rtol::Real=1e-3) where {S<:Real,U<:Real,V<:Number}
     T = promote_type(eltype(A), eltype(B), real(eltype(p)), typeof(α), Float16)
     A = one(T)*A
     B = one(T)*B
@@ -134,14 +132,15 @@ type Poleplacement{T,M} <: AbstractNLPEvaluator
     end
 
     # schur factorization of A
-    Rₐ, Qₐ, λ = schur(A)
+    F = schur(A)
+    values = copy(F.values)
 
     # find eigenvalues not moved
     select = zeros(Bool, length(p))
     for i in eachindex(p)
-      j = findfirst(y->isapprox(p[i],y; rtol=rtol), λ)
-      if (j > 0)
-        splice!(λ, j)
+      j = findfirst(y->isapprox(p[i], y; rtol=rtol), values)
+      if (j != nothing)
+        splice!(values, j)
         select[i] = true
       end
     end
@@ -154,8 +153,10 @@ type Poleplacement{T,M} <: AbstractNLPEvaluator
     # form, i.e. in A₃
     # QₐᵀAQₐ = Rₐ =  [A₁ A₂;      QₐᵀB = QB = [B₁;
     #                 0  A₃]                   B₂]
-    ordschur!(Rₐ, Qₐ, select)
-    Qᵦ = Qₐ.'*B
+    ordschur!(F, select)
+    Rₐ, Qₐ, λ = F
+
+    Qᵦ = transpose(Qₐ)*B
     A₃ = Rₐ[m+1:end,m+1:end]
     B₂ = Qᵦ[m+1:end,:]
 
@@ -163,8 +164,8 @@ type Poleplacement{T,M} <: AbstractNLPEvaluator
     # of X, κ(X) according to cost function J = ακ(X) + (1-α)‖K‖²
     G  = randn(T,size(B₂,2),size(A₃,2))
     xₚ = randn(T,length(G))
-    X  = eye(T,size(A₃,1))
-    Xᵢ = eye(T,size(A₃,1))
+    X  = Matrix(Diagonal{T}(I,size(A₃,1)))
+    Xᵢ = Matrix(Diagonal{T}(I,size(A₃,1)))
     K  = zeros(T, size(G*Xᵢ))
 
     new{T,typeof(X)}(K, A₃, B₂, Ã, α, xₚ, X, Xᵢ, m, Qₐ)
@@ -177,10 +178,11 @@ function common_first_sylvester!(d::Poleplacement, x)
     d.xₚ[:] = x
     G = reshape(x, size(d.B,2), size(d.A,2))
     # solve AX - XÃ = -B*G
-    X, scale = LAPACK.trsyl!('N', 'N', d.A, d.Ã, -d.B*G, -1)
-    scale!(X, inv(scale)) # this scale is always 1?
-    d.X[:]  = X
-    d.Xᵢ[:] = inv(X)
+#    X, scale = LAPACK.trsyl!('N', 'N', d.A, d.Ã, -d.B*G, -1)
+#    X /= scale # this scale is always 1?
+#    d.X[:]  = X
+    d.X[:]  = sylvester(d.A, -d.Ã, d.B*G)
+    d.Xᵢ[:] = inv(d.X)
     d.K[:]  = G*d.Xᵢ
   end
 end
@@ -205,12 +207,13 @@ eval_g(d::Poleplacement, g, x) = nothing
 function eval_grad_f(d::Poleplacement, grad_f, x)
   common_first_sylvester!(d, x)
   X,Xᵢ,K,α = d.X,d.Xᵢ,d.K,d.α
-  # solve ÃU - UA = -S
+
   H = Xᵢ*K'
-  S = α*(-X.' + Xᵢ*Xᵢ.'*Xᵢ) + (1-α)*H*K  # Xi*Xi.'*Xi (X.'*X)\Xi
-  U,scale = LAPACK.trsyl!('N', 'N', d.Ã, d.A, -S, -1)
-  scale!(U, inv(scale)) # this scale is always 1?
+  S = α*(-transpose(X) + Xᵢ*transpose(Xᵢ)*Xᵢ) + (1-α)*H*K  # Xi*Xi.'*Xi (X.'*X)\Xi
+
+  # solve ÃU - UA = -S
+  U = sylvester(d.Ã, -d.A, S)
 
   # calculate gradient
-  grad_f[:] = vec((1-α)*H' + d.B.'*U.')
+  grad_f[:] = vec((1-α)*H' + transpose(d.B)*transpose(U))
 end

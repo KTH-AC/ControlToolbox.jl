@@ -1,4 +1,4 @@
-type RootLocusResponse{T} <: SystemResponse
+mutable struct RootLocusResponse{T} <: SystemResponse
   K::Vector{T}        # gains
   systf::TransferFunction{Val{:siso}}
   real_p::Matrix{T}   # real part of poles
@@ -8,9 +8,9 @@ type RootLocusResponse{T} <: SystemResponse
   d0::T               # radius
   tloc::Int
 
-  function (::Type{RootLocusResponse}){S<:Real,U<:Real,V<:Real}(
-    K::Vector{S}, systf::TransferFunction{Val{:siso}}, real_p::Matrix{U},
-    imag_p::Matrix{V}, real_m0::Real, imag_m0::Real, d0::Real)
+  function (::Type{RootLocusResponse})(K::Vector{S},
+    systf::TransferFunction{Val{:siso}}, real_p::Matrix{U}, imag_p::Matrix{V},
+    real_m0::Real, imag_m0::Real, d0::Real) where {S<:Real,U<:Real,V<:Real}
     if size(real_p) != size(imag_p)
       warn("RootLocusResponse: mag and phase must have same dimensions")
       throw(DomainError())
@@ -40,9 +40,8 @@ type RootLocusResponse{T} <: SystemResponse
 end
 
 # Iteration interface
-start(rls::RootLocusResponse)       = (rls.tloc = 1)
-done(rls::RootLocusResponse, state) = state >= length(rls.K)
-next(rls::RootLocusResponse, state) = (state+=1; rls.tloc = state; (rls, state))
+iterate(rls::RootLocusResponse)        = begin rls.tloc = 1; (rls, 1) end
+iterate(rls::RootLocusResponse, state) = state >= length(rls.K) ? nothing : (state+=1; rls.tloc = state; (rls, state))
 
 # Plot some outputs for some inputs
 @recipe function f(rls::RootLocusResponse)
@@ -134,14 +133,14 @@ julia> sys = tf([2., 5, 1], [1., 2, 3]);
 
 julia> rl = rootlocus(sys);
 """
-function rootlocus{S}(sys::LtiSystem{Val{:siso}}, K::AbstractVector{S}=Float64[];
-  kwargs...)
+function rootlocus(sys::LtiSystem{Val{:siso}}, K::AbstractVector{S}=Float64[];
+  kwargs...) where {S}
   systf = tf(sys)
   rootlocus(systf, K; kwargs...)
 end
 
-function rootlocus{S<:Real}(systf::TransferFunction{Val{:siso}},
-  K::AbstractVector{S}=Float64[]; N::Int=100)
+function rootlocus(systf::TransferFunction{Val{:siso}},
+  K::AbstractVector{S}=Float64[]; N::Int=100) where {S<:Real}
   r  = systf.mat[1]
   nump = num(r)
   denp = den(r)

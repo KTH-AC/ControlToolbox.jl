@@ -1,15 +1,18 @@
 module ControlToolbox
 
 using Compat
+using LinearAlgebra
 using Optim
 using Polynomials
+using Printf
 using RationalFunctions
 using RecipesBase
 using LTISystems
 
-import Base: step, norm
-import Base.LinAlg: BlasFloat
-import Base: start, next, done
+import Base: step
+#import Base: BlasFloat
+import Base: iterate
+import LinearAlgebra: norm
 import LTISystems: LtiSystem, StateSpace, TransferFunction, SystemResponse
 import MathProgBase: eval_grad_f, eval_f, eval_g, features_available, initialize
 
